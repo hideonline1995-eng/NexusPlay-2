@@ -1257,23 +1257,7 @@ footer {
       </div>
     </div>
   </div>
-  <div class="hero-visual" aria-hidden="true">
-    <svg class="hero-controller" viewBox="0 0 600 400" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <ellipse cx="300" cy="200" rx="220" ry="130" fill="rgba(0,255,136,0.05)" stroke="rgba(0,255,136,0.3)" stroke-width="1"/>
-      <ellipse cx="180" cy="200" rx="70" ry="80" fill="rgba(0,255,136,0.06)" stroke="rgba(0,255,136,0.2)" stroke-width="1"/>
-      <ellipse cx="420" cy="200" rx="70" ry="80" fill="rgba(0,255,136,0.06)" stroke="rgba(0,255,136,0.2)" stroke-width="1"/>
-      <circle cx="200" cy="200" r="20" fill="rgba(0,255,136,0.15)" stroke="#00ff88" stroke-width="1.5"/>
-      <rect x="195" y="185" width="10" height="30" rx="5" fill="#00ff88" opacity="0.7"/>
-      <rect x="185" y="195" width="30" height="10" rx="5" fill="#00ff88" opacity="0.7"/>
-      <circle cx="380" cy="185" r="8" fill="rgba(0,255,136,0.4)" stroke="#00ff88"/>
-      <circle cx="395" cy="200" r="8" fill="rgba(0,255,136,0.2)" stroke="#00ff88" opacity="0.7"/>
-      <circle cx="380" cy="215" r="8" fill="rgba(0,255,136,0.2)" stroke="#00ff88" opacity="0.7"/>
-      <circle cx="365" cy="200" r="8" fill="rgba(0,255,136,0.2)" stroke="#00ff88" opacity="0.7"/>
-      <rect x="270" y="185" width="60" height="30" rx="6" fill="rgba(0,255,136,0.08)" stroke="rgba(0,255,136,0.3)"/>
-      <circle cx="165" cy="155" r="25" fill="rgba(0,255,136,0.08)" stroke="rgba(0,255,136,0.2)"/>
-      <circle cx="435" cy="155" r="25" fill="rgba(0,255,136,0.08)" stroke="rgba(0,255,136,0.2)"/>
-    </svg>
-  </div>
+
 </section>
 
 <!-- GAME LIBRARY -->
@@ -2357,42 +2341,152 @@ footer {
     window.addEventListener('resize', resize);
 
     // ── Stars ──
-    const STAR_COUNT = 180;
+    const STAR_COUNT = 320;
     const stars = Array.from({length: STAR_COUNT}, () => ({
-      x: Math.random() * 2000,
-      y: Math.random() * 2000,
-      r: Math.random() * 1.6 + 0.2,
-      alpha: Math.random() * 0.7 + 0.15,
-      twinkleSpeed: 0.008 + Math.random() * 0.018,
-      twinkleOffset: Math.random() * Math.PI * 2
+      x: Math.random() * 3000,
+      y: Math.random() * 3000,
+      r: Math.random() * 2.2 + 0.2,
+      alpha: Math.random() * 0.8 + 0.1,
+      twinkleSpeed: 0.006 + Math.random() * 0.022,
+      twinkleOffset: Math.random() * Math.PI * 2,
+      color: Math.random() < 0.15 ? 'rgba(180,220,255,' : (Math.random() < 0.1 ? 'rgba(255,220,180,' : 'rgba(220,240,255,'),
     }));
 
     // ── Planets ──
     const planets = [
-      { x: W * 0.82, y: H * 0.18, r: 48, color: '#1a4a2a', ring: true,  glowColor: 'rgba(0,255,136,0.18)' },
-      { x: W * 0.12, y: H * 0.72, r: 30, color: '#0d3320', ring: false, glowColor: 'rgba(0,200,100,0.14)' },
-      { x: W * 0.55, y: H * 0.88, r: 22, color: '#163d22', ring: false, glowColor: 'rgba(0,255,136,0.10)' },
+      { x: 0, y: 0, r: 52, color: '#1a4a2a', ring: true,  glowColor: 'rgba(0,255,136,0.18)', px: 0.14, py: 0.22 },
+      { x: 0, y: 0, r: 32, color: '#1a1a3a', ring: false, glowColor: 'rgba(80,100,255,0.14)', px: 0.08, py: 0.68, colorA: '#3050ff', colorB: '#0a0a22' },
+      { x: 0, y: 0, r: 24, color: '#3d1616', ring: false, glowColor: 'rgba(255,80,80,0.10)',  px: 0.48, py: 0.91, colorA: '#ff4040', colorB: '#1a0505' },
     ];
 
-    // ── Ship ──
-    const ship = {
-      x: W * 0.5, y: H * 0.5,
-      vx: 1.1, vy: 0.7,
-      angle: 0,
-      targetAngle: 0,
-      thrustTimer: 0,
-      // Laser beams
-      lasers: [],
-      laserTimer: 0,
-      laserInterval: 90 + Math.random() * 60,
-      // Exhaust particles
-      exhaust: [],
+    // ── Death Star ──
+    const ds = {
+      baseX: 0, baseY: 0,
+      r: 110,
+      wobbleAmp: 6,
+      wobbleSpeed: 0.0004,
+      get x() { return this.baseX + Math.sin(Date.now() * this.wobbleSpeed) * this.wobbleAmp; },
+      get y() { return this.baseY + Math.cos(Date.now() * this.wobbleSpeed * 0.7) * this.wobbleAmp * 0.5; },
     };
 
-    // Laser impact sparks
-    const sparks = [];
+    // ── Ships ──
+    function makeShip(px, py, speed) {
+      const a = Math.random() * Math.PI * 2;
+      return {
+        x: W * px, y: H * py,
+        vx: Math.cos(a) * speed, vy: Math.sin(a) * speed,
+        angle: a, targetAngle: a,
+        lasers: [], laserTimer: Math.floor(Math.random() * 120),
+        laserInterval: 70 + Math.random() * 100,
+        exhaust: [],
+        steerTimer: 0,
+        steerVx: Math.cos(a) * speed, steerVy: Math.sin(a) * speed,
+        speed: speed,
+        kills: 0,
+        exploding: false,
+        explodeTimer: 0,
+        explodeDuration: 60,
+      };
+    }
+    const ships = [
+      makeShip(0.3, 0.4, 1.9),
+      makeShip(0.6, 0.6, 1.5),
+      makeShip(0.15, 0.5, 2.1),
+      makeShip(0.7, 0.25, 1.7),
+    ];
 
+    const sparks = [];
+    const explosions = [];
     let frame = 0;
+
+    // ── Spawn big explosion ──
+    function spawnExplosion(x, y) {
+      for (let i = 0; i < 38; i++) {
+        const a = Math.random() * Math.PI * 2;
+        const spd = 1.5 + Math.random() * 5.5;
+        explosions.push({
+          x, y,
+          vx: Math.cos(a) * spd, vy: Math.sin(a) * spd,
+          r: 2.5 + Math.random() * 6,
+          life: 30 + Math.random() * 40, maxLife: 70,
+          color: Math.random() < 0.5 ? 'rgba(255,140,0,' : (Math.random() < 0.5 ? 'rgba(255,60,0,' : 'rgba(0,255,136,'),
+        });
+      }
+      // Central flash
+      for (let i = 0; i < 12; i++) {
+        const a = Math.random() * Math.PI * 2;
+        explosions.push({
+          x, y,
+          vx: Math.cos(a) * (0.5 + Math.random() * 2), vy: Math.sin(a) * (0.5 + Math.random() * 2),
+          r: 8 + Math.random() * 18,
+          life: 14 + Math.random() * 10, maxLife: 24,
+          color: 'rgba(255,255,200,',
+        });
+      }
+    }
+
+    // ── Draw Explosions ──
+    function drawExplosions() {
+      for (let i = explosions.length - 1; i >= 0; i--) {
+        const e = explosions[i];
+        e.x += e.vx; e.y += e.vy;
+        e.vx *= 0.93; e.vy *= 0.93;
+        e.life--;
+        e.r *= 0.97;
+        if (e.life <= 0) { explosions.splice(i, 1); continue; }
+        ctx.beginPath(); ctx.arc(e.x, e.y, e.r, 0, Math.PI * 2);
+        ctx.fillStyle = e.color + (e.life / e.maxLife * 0.9) + ')';
+        ctx.fill();
+      }
+    }
+
+    // ── Check laser hits ──
+    function checkHits() {
+      for (let si = 0; si < ships.length; si++) {
+        const shooter = ships[si];
+        for (let li = shooter.lasers.length - 1; li >= 0; li--) {
+          const laser = shooter.lasers[li];
+          for (let ti = 0; ti < ships.length; ti++) {
+            if (ti === si) continue;
+            const target = ships[ti];
+            if (target.exploding) continue;
+            const dx = laser.x - target.x;
+            const dy = laser.y - target.y;
+            const dist = Math.sqrt(dx*dx + dy*dy);
+            if (dist < 28) {
+              // Hit!
+              spawnExplosion(target.x, target.y);
+              shooter.lasers.splice(li, 1);
+              shooter.kills++;
+              // Start exploding target
+              target.exploding = true;
+              target.explodeTimer = 0;
+              target.lasers = [];
+              break;
+            }
+          }
+        }
+      }
+    }
+
+    // ── Respawn ship ──
+    function respawnShip(s) {
+      const edge = Math.floor(Math.random() * 4);
+      if (edge === 0) { s.x = Math.random() * W; s.y = -60; }
+      else if (edge === 1) { s.x = Math.random() * W; s.y = H + 60; }
+      else if (edge === 2) { s.x = -60; s.y = Math.random() * H; }
+      else { s.x = W + 60; s.y = Math.random() * H; }
+      const a = Math.random() * Math.PI * 2;
+      s.vx = Math.cos(a) * s.speed; s.vy = Math.sin(a) * s.speed;
+      s.angle = a; s.targetAngle = a;
+      s.steerVx = s.vx; s.steerVy = s.vy;
+      s.steerTimer = 0;
+      s.lasers = [];
+      s.exhaust = [];
+      s.laserTimer = 0;
+      s.exploding = false;
+      s.explodeTimer = 0;
+    }
 
     function wrapAngle(a) {
       while (a > Math.PI) a -= Math.PI * 2;
@@ -2400,6 +2494,7 @@ footer {
       return a;
     }
 
+    // ── Draw Stars ──
     function drawStars(t) {
       for (const s of stars) {
         const tw = 0.5 + 0.5 * Math.sin(t * s.twinkleSpeed + s.twinkleOffset);
@@ -2407,255 +2502,252 @@ footer {
         const sy = (s.y % H + H) % H;
         ctx.beginPath();
         ctx.arc(sx, sy, s.r, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(180,255,220,${s.alpha * (0.4 + 0.6 * tw)})`;
+        ctx.fillStyle = s.color + (s.alpha * (0.35 + 0.65 * tw)) + ')';
         ctx.fill();
+        // Occasional bright cross-flare
+        if (s.r > 1.5 && tw > 0.85) {
+          ctx.save();
+          ctx.globalAlpha = (tw - 0.85) * 0.5;
+          ctx.strokeStyle = s.color + '0.9)';
+          ctx.lineWidth = 0.5;
+          const fl = s.r * 3;
+          ctx.beginPath(); ctx.moveTo(sx - fl, sy); ctx.lineTo(sx + fl, sy); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(sx, sy - fl); ctx.lineTo(sx, sy + fl); ctx.stroke();
+          ctx.restore();
+        }
       }
     }
 
+    // ── Draw Planet ──
     function drawPlanet(p, t) {
-      // Glow
-      const grad = ctx.createRadialGradient(p.x, p.y, p.r * 0.3, p.x, p.y, p.r * 2.2);
-      grad.addColorStop(0, p.glowColor);
-      grad.addColorStop(1, 'transparent');
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, p.r * 2.2, 0, Math.PI * 2);
-      ctx.fillStyle = grad;
-      ctx.fill();
+      const cx = p.colorA || '#2aff90', cb = p.colorB || '#020a04';
+      const glow = ctx.createRadialGradient(p.x, p.y, p.r * 0.3, p.x, p.y, p.r * 2.4);
+      glow.addColorStop(0, p.glowColor);
+      glow.addColorStop(1, 'transparent');
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.r * 2.4, 0, Math.PI * 2);
+      ctx.fillStyle = glow; ctx.fill();
 
-      // Planet body
-      const bodyGrad = ctx.createRadialGradient(p.x - p.r * 0.3, p.y - p.r * 0.3, p.r * 0.1, p.x, p.y, p.r);
-      bodyGrad.addColorStop(0, '#2aff90');
-      bodyGrad.addColorStop(0.4, p.color);
-      bodyGrad.addColorStop(1, '#020a04');
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-      ctx.fillStyle = bodyGrad;
-      ctx.fill();
-      ctx.strokeStyle = 'rgba(0,255,136,0.25)';
-      ctx.lineWidth = 1;
-      ctx.stroke();
+      const bodyGrad = ctx.createRadialGradient(p.x - p.r * 0.32, p.y - p.r * 0.32, p.r * 0.08, p.x, p.y, p.r);
+      bodyGrad.addColorStop(0, cx); bodyGrad.addColorStop(0.42, p.color); bodyGrad.addColorStop(1, cb);
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      ctx.fillStyle = bodyGrad; ctx.fill();
+      ctx.strokeStyle = 'rgba(255,255,255,0.12)'; ctx.lineWidth = 1; ctx.stroke();
 
-      // Ring
       if (p.ring) {
-        ctx.save();
-        ctx.translate(p.x, p.y);
-        ctx.scale(1, 0.28);
-        ctx.beginPath();
-        ctx.arc(0, 0, p.r * 1.75, 0, Math.PI * 2);
-        ctx.strokeStyle = 'rgba(0,255,136,0.28)';
-        ctx.lineWidth = 5;
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.arc(0, 0, p.r * 2.1, 0, Math.PI * 2);
-        ctx.strokeStyle = 'rgba(0,255,136,0.12)';
-        ctx.lineWidth = 3;
-        ctx.stroke();
+        ctx.save(); ctx.translate(p.x, p.y); ctx.scale(1, 0.26);
+        ctx.beginPath(); ctx.arc(0, 0, p.r * 1.8, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(0,255,136,0.30)'; ctx.lineWidth = 6; ctx.stroke();
+        ctx.beginPath(); ctx.arc(0, 0, p.r * 2.15, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(0,255,136,0.12)'; ctx.lineWidth = 3; ctx.stroke();
         ctx.restore();
       }
     }
 
+    // ── Draw Death Star ──
+    function drawDeathStar(t) {
+      const x = ds.x, y = ds.y, r = ds.r;
+
+      // Outer glow
+      const outerGlow = ctx.createRadialGradient(x, y, r * 0.7, x, y, r * 1.8);
+      outerGlow.addColorStop(0, 'rgba(120,160,120,0.08)');
+      outerGlow.addColorStop(1, 'transparent');
+      ctx.beginPath(); ctx.arc(x, y, r * 1.8, 0, Math.PI * 2);
+      ctx.fillStyle = outerGlow; ctx.fill();
+
+      // Main sphere
+      const sphereGrad = ctx.createRadialGradient(x - r * 0.28, y - r * 0.28, r * 0.05, x, y, r);
+      sphereGrad.addColorStop(0, '#5a6a5a');
+      sphereGrad.addColorStop(0.25, '#3a4a3a');
+      sphereGrad.addColorStop(0.6, '#222e22');
+      sphereGrad.addColorStop(1, '#0d130d');
+      ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2);
+      ctx.fillStyle = sphereGrad; ctx.fill();
+
+      // Panel lines (horizontal)
+      ctx.save(); ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.clip();
+      ctx.strokeStyle = 'rgba(0,255,136,0.07)'; ctx.lineWidth = 1;
+      for (let i = -r; i < r; i += 18) {
+        ctx.beginPath(); ctx.moveTo(x - r, y + i); ctx.lineTo(x + r, y + i); ctx.stroke();
+      }
+      // Panel lines (vertical)
+      for (let i = -r; i < r; i += 18) {
+        ctx.beginPath(); ctx.moveTo(x + i, y - r); ctx.lineTo(x + i, y + r); ctx.stroke();
+      }
+      // Equator band
+      ctx.strokeStyle = 'rgba(0,255,136,0.18)'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(x - r, y + r * 0.08); ctx.lineTo(x + r, y + r * 0.08); ctx.stroke();
+      ctx.restore();
+
+      // Shadow hemisphere
+      const shadowGrad = ctx.createRadialGradient(x + r * 0.3, y + r * 0.3, 0, x + r * 0.3, y + r * 0.3, r * 1.4);
+      shadowGrad.addColorStop(0, 'rgba(0,0,0,0)');
+      shadowGrad.addColorStop(0.55, 'rgba(0,0,0,0.35)');
+      shadowGrad.addColorStop(1, 'rgba(0,0,0,0.72)');
+      ctx.save(); ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.clip();
+      ctx.beginPath(); ctx.arc(x, y, r * 1.6, 0, Math.PI * 2);
+      ctx.fillStyle = shadowGrad; ctx.fill();
+      ctx.restore();
+
+      // Superlaser concave dish (upper-left quadrant)
+      const dishX = x - r * 0.28, dishY = y - r * 0.28, dishR = r * 0.32;
+      // Dish recess
+      const dishGrad = ctx.createRadialGradient(dishX, dishY, 0, dishX, dishY, dishR);
+      dishGrad.addColorStop(0, '#00ff88');
+      dishGrad.addColorStop(0.18, 'rgba(0,200,100,0.6)');
+      dishGrad.addColorStop(0.5, 'rgba(0,80,40,0.3)');
+      dishGrad.addColorStop(1, 'rgba(0,30,15,0)');
+      ctx.save(); ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.clip();
+      ctx.beginPath(); ctx.arc(dishX, dishY, dishR, 0, Math.PI * 2);
+      ctx.fillStyle = dishGrad; ctx.fill();
+      // Dish ring
+      ctx.strokeStyle = 'rgba(0,255,136,0.45)'; ctx.lineWidth = 1.5;
+      ctx.stroke();
+      // Inner ring
+      ctx.beginPath(); ctx.arc(dishX, dishY, dishR * 0.55, 0, Math.PI * 2);
+      ctx.strokeStyle = 'rgba(0,255,136,0.6)'; ctx.lineWidth = 1; ctx.stroke();
+      // Center dot pulsing
+      const pulse = 0.5 + 0.5 * Math.sin(t * 2.2);
+      ctx.beginPath(); ctx.arc(dishX, dishY, dishR * 0.14, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(0,255,136,${0.6 + 0.4 * pulse})`; ctx.fill();
+      ctx.restore();
+
+      // Sphere outline
+      ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2);
+      ctx.strokeStyle = 'rgba(0,255,136,0.14)'; ctx.lineWidth = 1.5; ctx.stroke();
+    }
+
+    // ── Draw Ship ──
     function drawShip(s) {
-      ctx.save();
-      ctx.translate(s.x, s.y);
-      ctx.rotate(s.angle);
-
-      // Engine glow
+      ctx.save(); ctx.translate(s.x, s.y); ctx.rotate(s.angle);
       const eg = ctx.createRadialGradient(-18, 0, 1, -18, 0, 22);
-      eg.addColorStop(0, 'rgba(0,255,136,0.5)');
-      eg.addColorStop(1, 'transparent');
-      ctx.beginPath();
-      ctx.arc(-18, 0, 22, 0, Math.PI * 2);
-      ctx.fillStyle = eg;
-      ctx.fill();
+      eg.addColorStop(0, 'rgba(0,255,136,0.55)'); eg.addColorStop(1, 'transparent');
+      ctx.beginPath(); ctx.arc(-18, 0, 22, 0, Math.PI * 2); ctx.fillStyle = eg; ctx.fill();
 
-      // Ship body (sleek sci-fi shape)
-      ctx.beginPath();
-      ctx.moveTo(26, 0);
-      ctx.lineTo(-10, -11);
-      ctx.lineTo(-18, -5);
-      ctx.lineTo(-18, 5);
-      ctx.lineTo(-10, 11);
-      ctx.closePath();
-      ctx.fillStyle = 'rgba(10,30,15,0.92)';
-      ctx.strokeStyle = '#00ff88';
-      ctx.lineWidth = 1.5;
-      ctx.fill();
-      ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(28, 0); ctx.lineTo(-10, -12); ctx.lineTo(-19, -5); ctx.lineTo(-19, 5); ctx.lineTo(-10, 12); ctx.closePath();
+      ctx.fillStyle = 'rgba(8,22,12,0.94)'; ctx.strokeStyle = '#00ff88'; ctx.lineWidth = 1.5; ctx.fill(); ctx.stroke();
 
-      // Cockpit
-      ctx.beginPath();
-      ctx.ellipse(8, 0, 9, 5, 0, 0, Math.PI * 2);
-      ctx.fillStyle = 'rgba(0,255,136,0.18)';
-      ctx.strokeStyle = 'rgba(0,255,136,0.5)';
-      ctx.lineWidth = 1;
-      ctx.fill();
-      ctx.stroke();
+      ctx.beginPath(); ctx.ellipse(8, 0, 9, 5, 0, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(0,255,136,0.18)'; ctx.strokeStyle = 'rgba(0,255,136,0.55)'; ctx.lineWidth = 1; ctx.fill(); ctx.stroke();
 
-      // Wings
-      ctx.beginPath();
-      ctx.moveTo(0, -11);
-      ctx.lineTo(-14, -22);
-      ctx.lineTo(-20, -5);
-      ctx.closePath();
-      ctx.fillStyle = 'rgba(0,255,136,0.08)';
-      ctx.strokeStyle = 'rgba(0,255,136,0.35)';
-      ctx.lineWidth = 1;
-      ctx.fill();
-      ctx.stroke();
-
-      ctx.beginPath();
-      ctx.moveTo(0, 11);
-      ctx.lineTo(-14, 22);
-      ctx.lineTo(-20, 5);
-      ctx.closePath();
-      ctx.fill();
-      ctx.stroke();
-
+      ctx.beginPath(); ctx.moveTo(0, -12); ctx.lineTo(-15, -24); ctx.lineTo(-21, -5); ctx.closePath();
+      ctx.fillStyle = 'rgba(0,255,136,0.07)'; ctx.strokeStyle = 'rgba(0,255,136,0.32)'; ctx.lineWidth = 1; ctx.fill(); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(0, 12); ctx.lineTo(-15, 24); ctx.lineTo(-21, 5); ctx.closePath(); ctx.fill(); ctx.stroke();
       ctx.restore();
     }
 
+    // ── Exhaust ──
     function drawExhaust(s) {
       for (let i = s.exhaust.length - 1; i >= 0; i--) {
         const p = s.exhaust[i];
-        p.life -= 1;
-        p.x += p.vx;
-        p.y += p.vy;
-        p.r *= 0.93;
+        p.life--; p.x += p.vx; p.y += p.vy; p.r *= 0.93;
         if (p.life <= 0) { s.exhaust.splice(i, 1); continue; }
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(0,255,136,${p.life / p.maxLife * 0.55})`;
-        ctx.fill();
+        ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(0,255,136,${p.life / p.maxLife * 0.52})`; ctx.fill();
       }
     }
-
     function spawnExhaust(s) {
-      const backAngle = s.angle + Math.PI;
-      const ex = s.x + Math.cos(backAngle) * 18 + (Math.random() - 0.5) * 6;
-      const ey = s.y + Math.sin(backAngle) * 18 + (Math.random() - 0.5) * 6;
+      const ba = s.angle + Math.PI;
       s.exhaust.push({
-        x: ex, y: ey,
-        vx: Math.cos(backAngle) * (1.2 + Math.random() * 1.5),
-        vy: Math.sin(backAngle) * (1.2 + Math.random() * 1.5),
-        r: 3 + Math.random() * 3,
-        life: 18 + Math.random() * 12,
-        maxLife: 30,
+        x: s.x + Math.cos(ba) * 18 + (Math.random() - 0.5) * 6,
+        y: s.y + Math.sin(ba) * 18 + (Math.random() - 0.5) * 6,
+        vx: Math.cos(ba) * (1.1 + Math.random() * 1.4),
+        vy: Math.sin(ba) * (1.1 + Math.random() * 1.4),
+        r: 3 + Math.random() * 3, life: 18 + Math.random() * 12, maxLife: 30,
       });
     }
 
+    // ── Lasers ──
     function fireLaser(s) {
-      const spread = (Math.random() - 0.5) * 0.18;
+      const spread = (Math.random() - 0.5) * 0.16;
       const a = s.angle + spread;
       s.lasers.push({
-        x: s.x + Math.cos(s.angle) * 28,
-        y: s.y + Math.sin(s.angle) * 28,
-        vx: Math.cos(a) * 9,
-        vy: Math.sin(a) * 9,
-        life: 55 + Math.floor(Math.random() * 30),
-        maxLife: 85,
-        len: 18 + Math.random() * 16,
+        x: s.x + Math.cos(s.angle) * 30, y: s.y + Math.sin(s.angle) * 30,
+        vx: Math.cos(a) * 10, vy: Math.sin(a) * 10,
+        life: 55 + Math.floor(Math.random() * 35), maxLife: 90,
+        len: 20 + Math.random() * 18,
+        color: Math.random() < 0.5 ? 'rgba(0,255,136,' : 'rgba(80,200,255,',
       });
     }
-
     function drawLasers(s) {
       for (let i = s.lasers.length - 1; i >= 0; i--) {
         const l = s.lasers[i];
-        l.x += l.vx;
-        l.y += l.vy;
-        l.life--;
-        if (l.life <= 0 || l.x < -60 || l.x > W + 60 || l.y < -60 || l.y > H + 60) {
-          // spawn impact sparks
-          for (let k = 0; k < 6; k++) {
-            sparks.push({
-              x: l.x, y: l.y,
-              vx: (Math.random() - 0.5) * 4,
-              vy: (Math.random() - 0.5) * 4,
-              life: 12 + Math.random() * 8,
-              maxLife: 20,
-              r: 1.5 + Math.random() * 2,
-            });
-          }
-          s.lasers.splice(i, 1);
-          continue;
+        l.x += l.vx; l.y += l.vy; l.life--;
+        if (l.life <= 0 || l.x < -80 || l.x > W + 80 || l.y < -80 || l.y > H + 80) {
+          for (let k = 0; k < 7; k++) sparks.push({
+            x: l.x, y: l.y, vx: (Math.random()-0.5)*5, vy: (Math.random()-0.5)*5,
+            life: 12+Math.random()*10, maxLife: 22, r: 1.5+Math.random()*2.5,
+            color: l.color,
+          });
+          s.lasers.splice(i, 1); continue;
         }
-        const alpha = Math.min(1, l.life / 18) * 0.9;
-        // Glow
-        ctx.save();
-        ctx.shadowColor = '#00ff88';
-        ctx.shadowBlur = 8;
-        // Beam
-        ctx.beginPath();
-        ctx.moveTo(l.x, l.y);
-        ctx.lineTo(l.x - l.vx / 9 * l.len, l.y - l.vy / 9 * l.len);
-        ctx.strokeStyle = `rgba(0,255,136,${alpha})`;
-        ctx.lineWidth = 2.5;
-        ctx.lineCap = 'round';
-        ctx.stroke();
-        // Bright core
-        ctx.beginPath();
-        ctx.moveTo(l.x, l.y);
-        ctx.lineTo(l.x - l.vx / 9 * (l.len * 0.4), l.y - l.vy / 9 * (l.len * 0.4));
-        ctx.strokeStyle = `rgba(180,255,220,${alpha * 0.85})`;
-        ctx.lineWidth = 1;
-        ctx.stroke();
+        const alpha = Math.min(1, l.life / 18) * 0.92;
+        ctx.save(); ctx.shadowColor = '#00ff88'; ctx.shadowBlur = 10;
+        ctx.beginPath(); ctx.moveTo(l.x, l.y);
+        ctx.lineTo(l.x - l.vx / 10 * l.len, l.y - l.vy / 10 * l.len);
+        ctx.strokeStyle = l.color + alpha + ')'; ctx.lineWidth = 2.8; ctx.lineCap = 'round'; ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(l.x, l.y);
+        ctx.lineTo(l.x - l.vx / 10 * (l.len * 0.4), l.y - l.vy / 10 * (l.len * 0.4));
+        ctx.strokeStyle = `rgba(200,255,240,${alpha * 0.85})`; ctx.lineWidth = 1; ctx.stroke();
         ctx.restore();
       }
     }
 
+    // ── Sparks ──
     function drawSparks() {
       for (let i = sparks.length - 1; i >= 0; i--) {
         const sp = sparks[i];
-        sp.x += sp.vx;
-        sp.y += sp.vy;
-        sp.life--;
-        sp.r *= 0.9;
+        sp.x += sp.vx; sp.y += sp.vy; sp.life--; sp.r *= 0.9;
         if (sp.life <= 0) { sparks.splice(i, 1); continue; }
-        ctx.beginPath();
-        ctx.arc(sp.x, sp.y, sp.r, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(0,255,136,${sp.life / sp.maxLife * 0.8})`;
-        ctx.fill();
+        ctx.beginPath(); ctx.arc(sp.x, sp.y, sp.r, 0, Math.PI * 2);
+        ctx.fillStyle = (sp.color || 'rgba(0,255,136,') + (sp.life / sp.maxLife * 0.85) + ')'; ctx.fill();
       }
     }
 
-    // Chaotic steering: pick random target directions
-    let steerTimer = 0;
-    let steerTarget = { vx: 1.1, vy: 0.7 };
-    const SPEED = 1.8;
+    // ── Draw kills counter above ship ──
+    function drawKills(s) {
+      ctx.save();
+      ctx.font = 'bold 13px "Orbitron", monospace';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'bottom';
+      ctx.shadowColor = '#00ff88';
+      ctx.shadowBlur = 10;
+      ctx.fillStyle = '#00ff88';
+      ctx.fillText('✦ ' + s.kills, s.x, s.y - 32);
+      ctx.restore();
+    }
 
+    // ── Update Ship ──
     function updateShip(s) {
-      steerTimer--;
-      if (steerTimer <= 0) {
-        steerTimer = 80 + Math.floor(Math.random() * 120);
-        const a = Math.random() * Math.PI * 2;
-        steerTarget.vx = Math.cos(a) * SPEED;
-        steerTarget.vy = Math.sin(a) * SPEED;
+      if (s.exploding) {
+        s.explodeTimer++;
+        // Spawn extra sparks during explosion
+        if (s.explodeTimer < 30 && s.explodeTimer % 3 === 0) {
+          spawnExplosion(s.x + (Math.random()-0.5)*20, s.y + (Math.random()-0.5)*20);
+        }
+        if (s.explodeTimer >= s.explodeDuration) {
+          respawnShip(s);
+        }
+        return;
       }
-      s.vx += (steerTarget.vx - s.vx) * 0.012;
-      s.vy += (steerTarget.vy - s.vy) * 0.012;
-
-      s.x += s.vx;
-      s.y += s.vy;
-
-      // Wrap around screen
-      if (s.x < -60) s.x = W + 60;
-      if (s.x > W + 60) s.x = -60;
-      if (s.y < -60) s.y = H + 60;
-      if (s.y > H + 60) s.y = -60;
-
-      // Rotate ship to face movement direction
+      s.steerTimer--;
+      if (s.steerTimer <= 0) {
+        s.steerTimer = 75 + Math.floor(Math.random() * 130);
+        const a = Math.random() * Math.PI * 2;
+        s.steerVx = Math.cos(a) * s.speed;
+        s.steerVy = Math.sin(a) * s.speed;
+      }
+      s.vx += (s.steerVx - s.vx) * 0.013;
+      s.vy += (s.steerVy - s.vy) * 0.013;
+      s.x += s.vx; s.y += s.vy;
+      if (s.x < -70) s.x = W + 70; if (s.x > W + 70) s.x = -70;
+      if (s.y < -70) s.y = H + 70; if (s.y > H + 70) s.y = -70;
       s.targetAngle = Math.atan2(s.vy, s.vx);
-      let diff = wrapAngle(s.targetAngle - s.angle);
-      s.angle += diff * 0.06;
-
-      // Exhaust
+      s.angle += wrapAngle(s.targetAngle - s.angle) * 0.065;
       if (frame % 2 === 0) spawnExhaust(s);
-
-      // Laser
       s.laserTimer++;
       if (s.laserTimer >= s.laserInterval) {
-        fireLaser(s);
-        s.laserTimer = 0;
-        s.laserInterval = 70 + Math.random() * 80;
+        fireLaser(s); s.laserTimer = 0;
+        s.laserInterval = 65 + Math.random() * 95;
       }
     }
 
@@ -2663,20 +2755,35 @@ footer {
       frame++;
       ctx.clearRect(0, 0, W, H);
 
-      drawStars(t * 0.001);
+      const ts = t * 0.001;
 
-      // Update planet positions lazily (static but redrawn each frame)
-      planets[0].x = W * 0.82; planets[0].y = H * 0.18;
-      planets[1].x = W * 0.10; planets[1].y = H * 0.72;
-      planets[2].x = W * 0.55; planets[2].y = H * 0.88;
+      drawStars(ts);
 
-      for (const p of planets) drawPlanet(p, t * 0.001);
+      // Update planet positions
+      planets[0].x = W * planets[0].px; planets[0].y = H * planets[0].py;
+      planets[1].x = W * planets[1].px; planets[1].y = H * planets[1].py;
+      planets[2].x = W * planets[2].px; planets[2].y = H * planets[2].py;
+      for (const p of planets) drawPlanet(p, ts);
 
-      drawExhaust(ship);
-      drawLasers(ship);
+      // Death Star (right side)
+      ds.baseX = W * 0.88; ds.baseY = H * 0.42;
+      drawDeathStar(ts);
+
+      checkHits();
+
+      for (const s of ships) {
+        if (!s.exploding) {
+          drawExhaust(s);
+          drawLasers(s);
+        }
+        updateShip(s);
+        if (!s.exploding) {
+          drawShip(s);
+          drawKills(s);
+        }
+      }
+      drawExplosions();
       drawSparks();
-      updateShip(ship);
-      drawShip(ship);
 
       requestAnimationFrame(loop);
     }
